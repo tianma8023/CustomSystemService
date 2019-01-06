@@ -11,14 +11,12 @@ import java.lang.reflect.Method;
 import de.robv.android.xposed.XposedHelpers;
 
 public class CustomService extends ICustomService.Stub {
-
     private static final String TAG = "CustomService";
 
-    private static CustomService sInstance;
-
     private Context mContext;
+    private static ICustomService mClient;
 
-    public CustomService(Context context) {
+    private CustomService(Context context) {
         mContext = context;
     }
 
@@ -35,12 +33,11 @@ public class CustomService extends ICustomService.Stub {
     public static void register(Context context, ClassLoader classLoader) {
         Class<?> svcManager = XposedHelpers.findClass("android.os.ServiceManager", classLoader);
 
-        sInstance = new CustomService(context);
-
+        CustomService customService = new CustomService(context);
         XposedHelpers.callStaticMethod(svcManager,
                 /* methodName */"addService",
                 /* name       */getServiceName(),
-                /* service    */ sInstance,
+                /* service    */ customService,
                 /* allowIsolated */ true);
 
         log("register service succeed");
@@ -52,16 +49,18 @@ public class CustomService extends ICustomService.Stub {
     }
 
     public static ICustomService getService() {
-        try {
-            Class<?> svcManager = Class.forName("android.os.ServiceManager");
-            Method getServiceMethod = svcManager.getDeclaredMethod("getService", String.class);
-            IBinder binder = (IBinder) getServiceMethod.invoke(null, getServiceName());
-            return ICustomService.Stub.asInterface(binder);
-        } catch (Exception e) {
-            e.printStackTrace();
-            log(e);
+        if (mClient == null) {
+            try {
+                Class<?> svcManager = Class.forName("android.os.ServiceManager");
+                Method getServiceMethod = svcManager.getDeclaredMethod("getService", String.class);
+                IBinder binder = (IBinder) getServiceMethod.invoke(null, getServiceName());
+                mClient = ICustomService.Stub.asInterface(binder);
+            } catch (Exception e) {
+                e.printStackTrace();
+                log(e);
+            }
         }
-        return null;
+        return mClient;
     }
 
     private static void log(String text) {
