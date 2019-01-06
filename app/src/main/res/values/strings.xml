@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">CustomSystemService</string>
+    <string name="xposed_module_description">Xposed sample for register custom system service</string>
+</resources>
